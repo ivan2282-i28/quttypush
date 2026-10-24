@@ -68,8 +68,8 @@ func helpType(t string) {
         "exampleprovider": {
             "type" : "fcm",
             "arguments": {
-                "server_key": "...",
-                "provider": "https://..."
+                "project_id": "...",
+                "service_account": "..."
             }
         }
     }
