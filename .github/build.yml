@@ -1,0 +1,42 @@
+name: Go Build and Upload
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build Linux Binary
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Клонируем исходный код репозитория
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Устанавливаем и настраиваем компилятор Go
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Укажите нужную вам версию Go
+          cache: true        # Автоматически кеширует зависимости для ускорения сборки
+
+      # Step 3: Компилируем приложение с заданными переменными окружения
+      - name: Build Binary
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          go build -ldflags="-s -w" -o quttypush .
+
+      # Step 4: Загружаем скомпилированный файл в артефакты GitHub CI
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binary           # Имя архива с артефактом в интерфейсе GitHub
+          path: quttypush     # Путь к файлу, который нужно сохранить
+          if-no-files-found: error     # Сборка упадет, если бинарник не будет найден
+          retention-days: 90            # Срок хранения артефакта (по умолчанию 90)
