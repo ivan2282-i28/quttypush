@@ -1,3 +1,4 @@
+
 package controllers
 
 import (
@@ -5,22 +6,21 @@ import (
 	"encoding/hex"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/qutty/pushserver/config"
 	"github.com/qutty/pushserver/models"
 	"github.com/qutty/pushserver/providers"
-	"gorm.io/gorm"
 )
 
 var (
-	db            *gorm.DB
+	store         *models.Store
 	providerCache sync.Map
 )
 
-func SetDB(database *gorm.DB) {
-	db = database
+// SetStore sets the in-memory token store used by the controllers.
+func SetStore(s *models.Store) {
+	store = s
 }
 
 func generateToken() string {
@@ -80,13 +80,12 @@ func Register(c *gin.Context) {
 
 	token := generateToken()
 
-	if db != nil {
-		record := models.TokenRecord{
+	if store != nil {
+		store.Create(&models.TokenRecord{
 			Token:    token,
 			Provider: provName,
 			Active:   true,
-		}
-		db.Create(&record)
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "token": token})
@@ -104,8 +103,8 @@ func Unregister(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "token required"})
 		return
 	}
-	if db != nil {
-		db.Where("token = ?", token).Delete(&models.TokenRecord{})
+	if store != nil {
+		store.Delete(token)
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
@@ -122,8 +121,8 @@ func Alive(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "token required"})
 		return
 	}
-	if db != nil {
-		db.Model(&models.TokenRecord{}).Where("token = ?", token).Update("updated_at", time.Now())
+	if store != nil {
+		store.Touch(token)
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

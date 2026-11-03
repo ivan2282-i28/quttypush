@@ -11,8 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func Run(args []string) {
@@ -60,7 +58,8 @@ func helpTypes() {
 }
 
 func helpType(t string) {
-	if t == "fcm" {
+	switch t {
+case "fcm":
 		fmt.Println(`Example config for fcm:
 {
     "label":"example label",
@@ -74,7 +73,7 @@ func helpType(t string) {
         }
     }
 }`)
-	} else if t == "apple" {
+	case "apple":
 		fmt.Println(`Example config for apple:
 {
     "label":"example label",
@@ -89,7 +88,7 @@ func helpType(t string) {
         }
     }
 }`)
-	} else {
+	default:
 		fmt.Println("Unknown type")
 	}
 }
@@ -112,13 +111,9 @@ func StartServer() {
 	// Rate limiting
 	r.Use(middleware.GlobalLimiter.Limit())
 	
-	// DB
-	db, err := gorm.Open(sqlite.Open("quttypush.db"), &gorm.Config{})
-	if err != nil {
-		panic(err)
-	}
-	db.AutoMigrate(&models.Device{}, &models.TokenRecord{})
-	controllers.SetDB(db)
+	// In-memory token store (pure Go, no SQLite dependency)
+	tokenStore := models.NewStore()
+	controllers.SetStore(tokenStore)
 	
 	// Load config if exists
 	if _, err := os.Stat("config.json"); err == nil {
